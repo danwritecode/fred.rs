@@ -370,7 +370,7 @@ pub trait StreamsInterface: ClientLike + Sized {
     block: Option<u64>,
     keys: K,
     ids: I,
-  ) -> impl Future<Output = FredResult<XReadResponse<Rk1, Rk2, Rk3, Rv>>> + Send
+  ) -> impl Future<Output = FredResult<Option<XReadResponse<Rk1, Rk2, Rk3, Rv>>>> + Send
   where
     Rk1: FromKey + Hash + Eq,
     Rk2: FromValue,
@@ -381,9 +381,14 @@ pub trait StreamsInterface: ClientLike + Sized {
   {
     async move {
       into!(keys, ids);
-      commands::streams::xread(self, count, block, keys, ids)
-        .await?
-        .into_xread_response()
+      let value = commands::streams::xread(self, count, block, keys, ids)
+        .await?;
+
+      if let Value::Null = value {
+        return Ok(None);
+      }
+
+      Ok(Some(value.into_xread_response()?))
     }
   }
 
@@ -540,7 +545,7 @@ pub trait StreamsInterface: ClientLike + Sized {
     noack: bool,
     keys: K,
     ids: I,
-  ) -> impl Future<Output = FredResult<XReadResponse<Rk1, Rk2, Rk3, Rv>>> + Send
+  ) -> impl Future<Output = FredResult<Option<XReadResponse<Rk1, Rk2, Rk3, Rv>>>> + Send
   where
     Rk1: FromKey + Hash + Eq,
     Rk2: FromValue,
@@ -551,11 +556,24 @@ pub trait StreamsInterface: ClientLike + Sized {
     K: Into<MultipleKeys> + Send,
     I: Into<MultipleIDs> + Send,
   {
+    // async move {
+    //   into!(group, consumer, keys, ids);
+    //   commands::streams::xreadgroup(self, group, consumer, count, block, noack, keys, ids)
+    //     .await?
+    //     .into_xread_response()
+    // }
+
     async move {
       into!(group, consumer, keys, ids);
-      commands::streams::xreadgroup(self, group, consumer, count, block, noack, keys, ids)
-        .await?
-        .into_xread_response()
+      let value = commands::streams::xreadgroup(self, group, consumer, count, block, noack, keys, ids)
+        .await?;
+
+      if let Value::Null = value {
+        return Ok(None);
+      }
+
+      Ok(Some(value.into_xread_response()?))
+
     }
   }
 
