@@ -384,6 +384,12 @@ pub trait StreamsInterface: ClientLike + Sized {
       let value = commands::streams::xread(self, count, block, keys, ids)
         .await?;
 
+      if let Value::Array(values) = &value {
+        if values.len() == 0 {
+          return Ok(None);
+        }
+      }
+
       if let Value::Null = value {
         return Ok(None);
       }
@@ -560,6 +566,12 @@ pub trait StreamsInterface: ClientLike + Sized {
       into!(group, consumer, keys, ids);
       let value = commands::streams::xreadgroup(self, group, consumer, count, block, noack, keys, ids)
         .await?;
+
+      if let Value::Array(values) = &value {
+        if values.len() == 0 {
+          return Ok(None);
+        }
+      }
 
       if let Value::Null = value {
         return Ok(None);
